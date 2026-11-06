@@ -1,0 +1,102 @@
+# path: deploy/k8s/services/user.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: user-sa
+  namespace: artisan-market
+  labels:
+    app: user
+    app.kubernetes.io/name: user
+    app.kubernetes.io/part-of: artisan-market
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: artisan-market
+  labels:
+    app: user
+    app.kubernetes.io/name: user
+    app.kubernetes.io/part-of: artisan-market
+spec:
+  type: ClusterIP
+  selector:
+    app: user
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: artisan-market
+  labels:
+    app: user
+    app.kubernetes.io/name: user
+    app.kubernetes.io/part-of: artisan-market
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+        app.kubernetes.io/name: user
+        app.kubernetes.io/part-of: artisan-market
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "50051"
+    spec:
+      serviceAccountName: user-sa
+      containers:
+        - name: user
+          image: artisan/user:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: artisan-config
+          env:
+            - name: PORT
+              value: "50051"
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@artisan-postgres.database.svc.cluster.local:5432/artisan_user?sslmode=disable"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: JWT_SECRET
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+

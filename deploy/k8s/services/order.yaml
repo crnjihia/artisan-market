@@ -1,0 +1,96 @@
+# path: deploy/k8s/services/order.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: order-sa
+  namespace: artisan-market
+  labels:
+    app: order
+    app.kubernetes.io/name: order
+    app.kubernetes.io/part-of: artisan-market
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order
+  namespace: artisan-market
+  labels:
+    app: order
+    app.kubernetes.io/name: order
+    app.kubernetes.io/part-of: artisan-market
+spec:
+  type: ClusterIP
+  selector:
+    app: order
+  ports:
+    - name: grpc
+      port: 50053
+      targetPort: 50053
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  namespace: artisan-market
+  labels:
+    app: order
+    app.kubernetes.io/name: order
+    app.kubernetes.io/part-of: artisan-market
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+        app.kubernetes.io/name: order
+        app.kubernetes.io/part-of: artisan-market
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "50053"
+    spec:
+      serviceAccountName: order-sa
+      containers:
+        - name: order
+          image: artisan/order:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50053
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: artisan-config
+          env:
+            - name: PORT
+              value: "50053"
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@artisan-postgres.database.svc.cluster.local:5432/artisan_order?sslmode=disable"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+

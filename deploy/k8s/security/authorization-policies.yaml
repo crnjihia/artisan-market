@@ -1,0 +1,115 @@
+# path: deploy/k8s/security/authorization-policies.yaml
+# 1. Deny All Default within artisan-market namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-default
+  namespace: artisan-market
+spec:
+  {}
+---
+# 2. Allow Gateway Ingress from Istio Ingress Gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+      to:
+        - operation:
+            ports: ["3000"]
+---
+# 3. Allow User Service access ONLY from Gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-user-service
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: user
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/artisan-market/sa/gateway-sa"]
+      to:
+        - operation:
+            ports: ["50051"]
+---
+# 4. Allow Product Service access from Gateway and Order Service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-product-service
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: product
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/artisan-market/sa/gateway-sa"
+              - "cluster.local/ns/artisan-market/sa/order-sa"
+      to:
+        - operation:
+            ports: ["50052"]
+---
+# 5. Allow Order Service access from Gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-order-service
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: order
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/artisan-market/sa/gateway-sa"]
+      to:
+        - operation:
+            ports: ["50053"]
+---
+# 6. Allow Payment Service access from Gateway (gRPC) and Public Callback Ingress (HTTP)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-payment-service
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: payment
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/artisan-market/sa/gateway-sa"]
+      to:
+        - operation:
+            ports: ["50054"]
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+      to:
+        - operation:
+            ports: ["8084"]
+            paths: ["/mpesa/callback", "/stripe/webhook"]
+            methods: ["POST"]
+

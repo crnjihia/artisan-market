@@ -1,0 +1,9 @@
+# path: deploy/k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: artisan-market
+  labels:
+    istio-injection: enabled
+    app.kubernetes.io/part-of: artisan-market
+

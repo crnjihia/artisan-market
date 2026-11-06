@@ -1,0 +1,107 @@
+# path: deploy/k8s/services/notification.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-sa
+  namespace: artisan-market
+  labels:
+    app: notification
+    app.kubernetes.io/name: notification
+    app.kubernetes.io/part-of: artisan-market
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification
+  namespace: artisan-market
+  labels:
+    app: notification
+    app.kubernetes.io/name: notification
+    app.kubernetes.io/part-of: artisan-market
+spec:
+  type: ClusterIP
+  selector:
+    app: notification
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+  namespace: artisan-market
+  labels:
+    app: notification
+    app.kubernetes.io/name: notification
+    app.kubernetes.io/part-of: artisan-market
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+        app.kubernetes.io/name: notification
+        app.kubernetes.io/part-of: artisan-market
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+    spec:
+      serviceAccountName: notification-sa
+      containers:
+        - name: notification
+          image: artisan/notification:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: artisan-config
+          env:
+            - name: NOTIFICATION_HTTP_PORT
+              value: "3001"
+            - name: AFRICASTALKING_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: AFRICASTALKING_USERNAME
+                  optional: true
+            - name: AFRICASTALKING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: AFRICASTALKING_API_KEY
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3

@@ -1,0 +1,26 @@
+# path: deploy/k8s/security/peer-authentication.yaml
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict-mtls
+  namespace: artisan-market
+spec:
+  mtls:
+    mode: STRICT
+---
+# Dedicated port exclusion for HTTP payment webhooks from external providers
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: payment-webhook-permissive
+  namespace: artisan-market
+spec:
+  selector:
+    matchLabels:
+      app: payment
+  portLevelMtls:
+    "8084":
+      mode: PERMISSIVE # Permissive for Safaricom Daraja callback & Stripe webhook
+    "50054":
+      mode: STRICT     # Strict mTLS for internal gRPC
+

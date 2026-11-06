@@ -1,0 +1,23 @@
+# path: deploy/k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artisan-config
+  namespace: artisan-market
+data:
+  ENVIRONMENT: "production"
+  TIMEZONE: "Africa/Nairobi"
+  USE_MOCKS: "false"
+  KAFKA_BROKERS: "artisan-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "artisan-jaeger.monitoring.svc.cluster.local:4317"
+  DARAJA_SHORTCODE: "174379"
+  DARAJA_CALLBACK_URL: "https://market.artisan.co.ke/mpesa/callback"
+  EMAIL_SMTP_HOST: "artisan-mailpit.monitoring.svc.cluster.local"
+  EMAIL_SMTP_PORT: "1025"
+  EMAIL_FROM: "Artisan Market <no-reply@artisan.co.ke>"
+  USER_SERVICE_ADDR: "user.artisan-market.svc.cluster.local:50051"
+  PRODUCT_SERVICE_ADDR: "product.artisan-market.svc.cluster.local:50052"
+  ORDER_SERVICE_ADDR: "order.artisan-market.svc.cluster.local:50053"
+  PAYMENT_SERVICE_ADDR: "payment.artisan-market.svc.cluster.local:50054"
+  GRPC_ENABLE_TLS: "false" # In Istio, the Envoy sidecar handles STRICT mTLS transparently
+

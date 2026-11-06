@@ -1,0 +1,25 @@
+# path: deploy/k8s/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: artisan-market
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - services/gateway.yaml
+  - services/user.yaml
+  - services/product.yaml
+  - services/order.yaml
+  - services/payment.yaml
+  - services/notification.yaml
+  - security/peer-authentication.yaml
+  - security/authorization-policies.yaml
+  - istio/gateway-virtualservice.yaml
+  - istio/destination-rules.yaml
+  - istio/canary-example.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: artisan-market
+      app.kubernetes.io/managed-by: kustomize

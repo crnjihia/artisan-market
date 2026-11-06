@@ -1,0 +1,137 @@
+# path: deploy/k8s/services/payment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payment-sa
+  namespace: artisan-market
+  labels:
+    app: payment
+    app.kubernetes.io/name: payment
+    app.kubernetes.io/part-of: artisan-market
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: artisan-market
+  labels:
+    app: payment
+    app.kubernetes.io/name: payment
+    app.kubernetes.io/part-of: artisan-market
+spec:
+  type: ClusterIP
+  selector:
+    app: payment
+  ports:
+    - name: grpc
+      port: 50054
+      targetPort: 50054
+      protocol: TCP
+    - name: http-webhook
+      port: 8084
+      targetPort: 8084
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: artisan-market
+  labels:
+    app: payment
+    app.kubernetes.io/name: payment
+    app.kubernetes.io/part-of: artisan-market
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+        app.kubernetes.io/name: payment
+        app.kubernetes.io/part-of: artisan-market
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+    spec:
+      serviceAccountName: payment-sa
+      containers:
+        - name: payment
+          image: artisan/payment:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50054
+              protocol: TCP
+            - name: http-webhook
+              containerPort: 8084
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: artisan-config
+          env:
+            - name: PAYMENT_GRPC_ADDR
+              value: ":50054"
+            - name: PAYMENT_HTTP_ADDR
+              value: ":8084"
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@artisan-postgres.database.svc.cluster.local:5432/artisan_payment?sslmode=disable"
+            - name: DARAJA_CONSUMER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: DARAJA_CONSUMER_KEY
+                  optional: true
+            - name: DARAJA_CONSUMER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: DARAJA_CONSUMER_SECRET
+                  optional: true
+            - name: DARAJA_PASSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: DARAJA_PASSKEY
+                  optional: true
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: STRIPE_SECRET_KEY
+                  optional: true
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artisan-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+                  optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8084
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8084
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+
