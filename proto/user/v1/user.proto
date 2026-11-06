@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/yourorg/artisan-market/proto/user/v1;userv1";
+
+message UserProfile {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string phone = 4; // Kenyan standard: +2547XXXXXXXX
+  string role = 5;  // "buyer", "seller", "admin"
+  string artisan_bio = 6;
+  string region = 7; // e.g. "Kisii", "Machakos", "Mombasa", "Turkana"
+  string mpesa_number = 8;
+  int64 created_at_unix_ms = 9;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  string phone = 4;
+  string role = 5;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  UserProfile profile = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  UserProfile profile = 4;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  UserProfile profile = 1;
+}
+
+message UpdateSellerProfileRequest {
+  string user_id = 1;
+  string artisan_bio = 2;
+  string region = 3;
+  string mpesa_number = 4;
+}
+
+message UpdateSellerProfileResponse {
+  UserProfile profile = 1;
+}
+
+service UserService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc GetProfile (GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateSellerProfile (UpdateSellerProfileRequest) returns (UpdateSellerProfileResponse);
+}

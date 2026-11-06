@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/yourorg/artisan-market/proto/payment/v1;paymentv1";
+
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  int64 amount_cents = 3;
+  string currency = 4; // "KES"
+  string method = 5;   // "mpesa" or "stripe"
+  string status = 6;   // "pending", "succeeded", "failed", "timed_out"
+  string provider_reference = 7; // e.g. M-Pesa CheckoutRequestID or Receipt
+  string customer_phone = 8;
+  string failure_reason = 9;
+  int64 created_at_unix_ms = 10;
+  int64 updated_at_unix_ms = 11;
+}
+
+message CreatePaymentRequest {
+  string order_id = 1;
+  int64 amount_cents = 2;
+  string currency = 3; // "KES"
+  string method = 4;   // "mpesa" or "stripe"
+  string customer_phone = 5; // e.g. "+254712345678"
+  string customer_email = 6;
+}
+
+message CreatePaymentResponse {
+  string payment_id = 1;
+  string status = 2;
+  string provider_reference = 3;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+message ProcessMpesaCallbackRequest {
+  string checkout_request_id = 1;
+  int32 result_code = 2;
+  string result_desc = 3;
+  string mpesa_receipt_number = 4;
+  int64 amount_cents = 5;
+  string phone_number = 6;
+}
+
+message ProcessMpesaCallbackResponse {
+  bool acknowledged = 1;
+  string payment_id = 2;
+  string status = 3;
+}
+
+message ProcessStripeWebhookRequest {
+  string payload_json = 1;
+  string signature_header = 2;
+}
+
+message ProcessStripeWebhookResponse {
+  bool acknowledged = 1;
+  string payment_id = 2;
+  string status = 3;
+}
+
+service PaymentService {
+  rpc CreatePayment (CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc GetPayment (GetPaymentRequest) returns (GetPaymentResponse);
+  rpc ProcessMpesaCallback (ProcessMpesaCallbackRequest) returns (ProcessMpesaCallbackResponse);
+  rpc ProcessStripeWebhook (ProcessStripeWebhookRequest) returns (ProcessStripeWebhookResponse);
+}
