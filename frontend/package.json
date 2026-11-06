@@ -1,0 +1,27 @@
+{
+  "name": "artisan-market-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3050",
+    "build": "next build",
+    "start": "next start -p 3050",
+    "lint": "next lint",
+    "test:e2e": "npx playwright test"
+  },
+  "dependencies": {
+    "next": "14.2.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "axios": "^1.7.2",
+    "swr": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/node": "^20.14.2",
+    "typescript": "^5.5.4",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.4",
+    "@playwright/test": "^1.45.0"
+  }
+}
