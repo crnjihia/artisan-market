@@ -1,0 +1,95 @@
+# path: .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go 1.24
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Determine Release Tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Go Microservice Binaries (linux/amd64 & linux/arm64)
+        run: |
+          mkdir -p dist/binaries-linux-amd64 dist/binaries-linux-arm64
+          TAG="${{ steps.vars.outputs.TAG }}"
+          LDFLAGS="-s -w -X main.version=${TAG}"
+
+          # Linux AMD64
+          for svc in user product order payment; do
+            echo "Building $svc for linux/amd64..."
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$LDFLAGS" -o "dist/binaries-linux-amd64/artisan-$svc" "./backend/$svc"
+          done
+
+          # Linux ARM64
+          for svc in user product order payment; do
+            echo "Building $svc for linux/arm64..."
+            CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="$LDFLAGS" -o "dist/binaries-linux-arm64/artisan-$svc" "./backend/$svc"
+          done
+
+      - name: Package Artifacts
+        run: |
+          TAG="${{ steps.vars.outputs.TAG }}"
+          mkdir -p release-artifacts
+
+          # 1. Linux AMD64 Binaries
+          tar -czvf "release-artifacts/artisan-market-${TAG}-linux-amd64.tar.gz" -C dist/binaries-linux-amd64 .
+
+          # 2. Linux ARM64 Binaries
+          tar -czvf "release-artifacts/artisan-market-${TAG}-linux-arm64.tar.gz" -C dist/binaries-linux-arm64 .
+
+          # 3. Protobuf Contracts Package
+          tar -czvf "release-artifacts/artisan-market-${TAG}-proto-contracts.tar.gz" proto/ buf.yaml buf.gen.yaml
+
+          # 4. Rendered Kubernetes Manifests
+          mkdir -p dist/k8s
+          kubectl kustomize deploy/k8s > dist/k8s/artisan-market-all-resources.yaml
+          tar -czvf "release-artifacts/artisan-market-${TAG}-k8s-manifests.tar.gz" -C dist/k8s artisan-market-all-resources.yaml
+
+          # 5. Checksums
+          cd release-artifacts
+          sha256sum *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.TAG }}
+          name: "Artisan Market ${{ steps.vars.outputs.TAG }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-artifacts/*.tar.gz
+            release-artifacts/checksums.txt
+
