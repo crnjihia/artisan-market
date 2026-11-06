@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Go builds and test binaries
+bin/
+*.exe
+*.test
+*.out
+*.prof
+
+# Next.js and frontend build artifacts
+frontend/.next/
+frontend/out/
+dist/
+build/
+coverage/
+
+# Playwright reports
+playwright-report/
+test-results/
+
+# Environment files and credentials
+.env
+.env*.local
+*.pem
+*.key
+*.crt
+!backend/certs/*.sh
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker overrides & volumes
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
