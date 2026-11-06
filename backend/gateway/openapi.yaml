@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: Artisan Market REST Gateway
+  description: REST API Gateway translating HTTP requests to internal gRPC microservices for the Kenyan Artisan Marketplace.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local Gateway Environment
+paths:
+  /health:
+    get:
+      summary: Gateway Health Check
+      responses:
+        '200':
+          description: Service is healthy
+  /users/register:
+    post:
+      summary: Register a new buyer or artisan seller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Invalid input or Kenyan phone format
+        '409':
+          description: Email already exists
+  /users/login:
+    post:
+      summary: Authenticate user credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+        '401':
+          description: Invalid email or password
+  /users/profile:
+    get:
+      summary: Fetch authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile details
+        '401':
+          description: Unauthorized
+  /users/seller-profile:
+    put:
+      summary: Update artisan seller profile metadata
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerProfileUpdateRequest'
+      responses:
+        '200':
+          description: Seller profile updated
+  /products:
+    get:
+      summary: List and search artisan products
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated product catalogue
+    post:
+      summary: Create a new artisan product (Seller only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+  /products/{id}:
+    get:
+      summary: Get product details by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details
+        '404':
+          description: Product not found
+    put:
+      summary: Update product details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product updated
+    delete:
+      summary: Delete product
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product deleted
+  /orders:
+    post:
+      summary: Submit checkout order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+        '400':
+          description: Invalid order parameters
+  /orders/{id}:
+    get:
+      summary: Get order details by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+  /payments:
+    post:
+      summary: Initiate M-Pesa STK Push or Stripe payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment initiated
+  /payments/{id}:
+    get:
+      summary: Poll payment status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, name, phone]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        phone:
+          type: string
+          example: "+254712345678"
+        role:
+          type: string
+          enum: [buyer, seller]
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    SellerProfileUpdateRequest:
+      type: object
+      required: [artisan_bio, region]
+      properties:
+        artisan_bio:
+          type: string
+        region:
+          type: string
+          example: "Kisii"
+        mpesa_number:
+          type: string
+          example: "+254712345678"
+    CreateProductRequest:
+      type: object
+      required: [name, price_cents, inventory, category]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price_cents:
+          type: integer
+          example: 250000
+        inventory:
+          type: integer
+          example: 10
+        category:
+          type: string
+          example: "Carvings"
+        image_url:
+          type: string
+        origin_region:
+          type: string
+          example: "Kisii"
+    CreateOrderRequest:
+      type: object
+      required: [items, payment_method, customer_phone]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id:
+                type: string
+              quantity:
+                type: integer
+        payment_method:
+          type: string
+          enum: [mpesa, stripe]
+        customer_phone:
+          type: string
+          example: "+254712345678"
+        customer_email:
+          type: string
+    CreatePaymentRequest:
+      type: object
+      required: [order_id, amount_cents, method]
+      properties:
+        order_id:
+          type: string
+        amount_cents:
+          type: integer
+        currency:
+          type: string
+          default: "KES"
+        method:
+          type: string
+          enum: [mpesa, stripe]
+        customer_phone:
+          type: string
+          example: "+254712345678"
+        customer_email:
+          type: string
