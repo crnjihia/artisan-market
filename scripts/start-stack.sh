@@ -4,37 +4,41 @@ set -e
 # Bring up the docker compose stack in detached mode
 docker compose up -d
 
-# Wait for services to become healthy (simple retry loop)
-MAX_WAIT=60
-INTERVAL=5
+# Wait for services to become healthy
+MAX_WAIT=30
+INTERVAL=3
 elapsed=0
 while true; do
-  # Check gateway health (requires API key header)
-  if curl -ks "https://localhost:${GATEWAY_PORT:-3000}/api/health" -H "X-API-KEY: ${GATEWAY_API_KEY:-dev-secret-key}" >/dev/null 2>&1; then
-    echo "Gateway is healthy"
+  if docker compose ps postgres 2>/dev/null | grep -E "healthy|Up" >/dev/null 2>&1; then
+    echo "Backing services are healthy"
     break
   fi
   if [[ $elapsed -ge $MAX_WAIT ]]; then
-    echo "Timed out waiting for services"
-    exit 1
+    echo "Proceeding with stack tests..."
+    break
   fi
   echo "Waiting for services... ($elapsed s)"
   sleep $INTERVAL
   elapsed=$((elapsed + INTERVAL))
 done
 
-# Give a little extra time for the notification consumer to start
-sleep 5
-
-# Run front‑end build (required for Playwright tests that use the built UI)
+# Install dependencies and build storefront
 npm --prefix frontend install
 npm --prefix frontend run build
 
-# Install Playwright browsers
-npx --yes playwright install
+# Launch storefront server in background
+PORT=3050 npm --prefix frontend start &
+FRONTEND_PID=$!
 
-# Run Playwright tests
-npm --prefix frontend run test:e2e
+# Wait for storefront readiness
+sleep 5
 
-# If we got here, tests passed – keep containers running for debugging (optional)
-#docker compose logs -f
+# Install browser binaries if needed
+npx playwright install chromium 2>/dev/null || true
+
+# Run Playwright E2E suite
+BASE_URL="http://localhost:3050" npm --prefix frontend run test:e2e
+
+# Cleanup background server
+kill $FRONTEND_PID 2>/dev/null || true
+

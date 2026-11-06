@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3050",
     "lint": "next lint",
-    "test:e2e": "npx playwright test"
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts"
   },
   "dependencies": {
     "next": "14.2.4",

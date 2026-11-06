@@ -2,7 +2,7 @@
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
-COPY go.work ./
+ENV GOWORK=off
 COPY proto/ proto/
 COPY backend/user/ backend/user/
 

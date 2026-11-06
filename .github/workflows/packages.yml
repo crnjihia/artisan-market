@@ -38,7 +38,7 @@ jobs:
             context: .
           - name: artisan-notification
             dockerfile: backend/notification/Dockerfile
-            context: .
+            context: backend/notification
           - name: artisan-frontend
             dockerfile: frontend/Dockerfile
             context: .

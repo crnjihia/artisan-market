@@ -27,7 +27,7 @@ jobs:
       - name: Set up Buf CLI
         uses: bufbuild/buf-setup-action@v1
         with:
-          version: '1.34.0'
+          version: 'latest'
 
       - name: Install Node Dependencies
         run: |
