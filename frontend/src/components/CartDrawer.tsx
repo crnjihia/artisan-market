@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { useCart } from '../context/CartContext';
+import { publicAssetPath } from '../publicAssets';
 
 export function CartDrawer() {
   const {
@@ -42,7 +43,7 @@ export function CartDrawer() {
             <div className="cart-items-list">
               {items.map(({ product, quantity }) => (
                 <div key={product.id} className="cart-item">
-                  <img src={product.image_url} alt={product.name} className="cart-item-img" />
+                  <img src={publicAssetPath(product.image_url)} alt={product.name} className="cart-item-img" />
                   <div className="cart-item-info">
                     <h4>{product.name}</h4>
                     <p className="cart-item-price">
@@ -87,4 +88,3 @@ export function CartDrawer() {
     </div>
   );
 }
-

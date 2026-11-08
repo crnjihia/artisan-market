@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { MOCK_PRODUCTS } from '../../src/data/mockProducts';
 import { Product } from '../../src/types';
+import { publicAssetPath } from '../../src/publicAssets';
 
 export default function SellerDashboard() {
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
@@ -201,7 +202,7 @@ export default function SellerDashboard() {
               <tr key={item.id} style={{ borderBottom: '1px solid var(--divider)' }}>
                 <td style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <img
-                    src={item.image_url}
+                    src={publicAssetPath(item.image_url)}
                     alt={item.name}
                     style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }}
                   />

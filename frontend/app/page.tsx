@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { MOCK_PRODUCTS } from '../src/data/mockProducts';
 import { useCart } from '../src/context/CartContext';
 import { Product } from '../src/types';
+import { publicAssetPath } from '../src/publicAssets';
 
 export default function HomePage() {
   const { addToCart } = useCart();
@@ -174,7 +175,7 @@ export default function HomePage() {
                 <div className="product-image-frame">
                   <Link href={`/products/${product.id}`} className="image-link" tabIndex={-1}>
                     <img
-                      src={product.image_url}
+                      src={publicAssetPath(product.image_url)}
                       alt={product.name}
                       className="product-card-image"
                       loading="lazy"
